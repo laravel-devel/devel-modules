@@ -16,7 +16,7 @@
         }
     ],
     "require": {
-        "deve/devel": "^0.1",
+        "devel/devel": "^0.1",
         "devel/module-installer-composer-plugin": "^0.1.0",
         "php": ">=7.2",
         "ext-json": "*"
