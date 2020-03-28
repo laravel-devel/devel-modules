@@ -1,6 +1,6 @@
 {
     "name": "devel/modules",
-    "description": "Modules management for Devel",
+    "description": "Modularity and code generators for devel/devel",
     "keywords": [
         "devel",
         "modules",
