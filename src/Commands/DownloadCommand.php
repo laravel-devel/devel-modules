@@ -49,6 +49,11 @@ class DownloadCommand extends Command
         $name = $name . ($version ? ':' . $version : '');
 
         $this->runExternal('composer require ' . $name . ' --no-scripts');
+
+        if ($this->option('no-dump') === null) {
+            // Dump composer's autoload
+            $this->runExternal('composer dump-autoload');
+        }
     }
 
     /**
@@ -72,7 +77,7 @@ class DownloadCommand extends Command
     protected function getOptions()
     {
         return [
-            //
+            ['no-dump', null, InputOption::VALUE_REQUIRED, 'Don\'t run `composer dump-autoload` after downloading.'],
         ];
     }
 }
