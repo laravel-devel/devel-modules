@@ -7,6 +7,7 @@ use Devel\Modules\Support\Config\GenerateConfigReader;
 use Devel\Modules\Support\Stub;
 use Devel\Modules\Traits\ModuleCommandTrait;
 use Doctrine\DBAL\Schema\SchemaException;
+use Doctrine\DBAL\DBALException;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -109,11 +110,19 @@ class FactoryMakeCommand extends GeneratorCommand
         // Only include the fillable fields
         foreach ($model->getFillable() as $field) {
             // Determine the field type from the DB type
+            // TODO: This block of code repeats in 3 classes. Extract to a
+            // service, something like SchemaService or DbService
             try {
                 $columnType = DB::getSchemaBuilder()
                     ->getColumnType($model->getTable(), $field);
             } catch (SchemaException $e) {
                 throw new \Exception($e->getMessage() . ' Did you run the migrations?');
+            } catch (DBALException $e) {
+                // Some column types like "enum" through a DBALException.
+                // This is because "enum" is a custom type and is not supported
+                // by all the DBs. We're going to default to the string type in
+                // these cases.
+                $columnType = 'string';
             } catch (\Exception $e) {
                 throw $e;
             }

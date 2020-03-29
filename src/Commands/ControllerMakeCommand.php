@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Devel\Modules\Support\Config\GenerateConfigReader;
 use Devel\Modules\Support\Stub;
 use Devel\Modules\Traits\ModuleCommandTrait;
+use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Schema\SchemaException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -144,7 +145,7 @@ class ControllerMakeCommand extends GeneratorCommand
         return class_basename($this->getControllerName());
     }
 
-    public function getDefaultNamespace() : string
+    public function getDefaultNamespace(): string
     {
         $module = $this->laravel['devel-modules'];
 
@@ -181,7 +182,7 @@ class ControllerMakeCommand extends GeneratorCommand
     {
         return $this->option('model') ?? '';
     }
-    
+
     /**
      * Get CRUD model lower name name.
      *
@@ -204,7 +205,7 @@ class ControllerMakeCommand extends GeneratorCommand
 
             return array_pop($modelName) . 'Request';
         }
-        
+
         return '';
     }
 
@@ -217,7 +218,7 @@ class ControllerMakeCommand extends GeneratorCommand
     {
         $module = $this->laravel['devel-modules']->findOrFail($this->getModuleName());
 
-        return 'Modules\\' . $module->getStudlyName() . '\Http\Requests\\' .$this->getFormRequestName();
+        return 'Modules\\' . $module->getStudlyName() . '\Http\Requests\\' . $this->getFormRequestName();
     }
 
     /**
@@ -280,7 +281,7 @@ class ControllerMakeCommand extends GeneratorCommand
         }
 
         $model = new $model;
-        
+
         $values = "[\n";
         $values .= "            'Main' => [\n";
 
@@ -289,11 +290,19 @@ class ControllerMakeCommand extends GeneratorCommand
             $label = ucwords(implode(' ', explode('_', $field)));
 
             // Determine the field type from the DB type
+            // TODO: This block of code repeats in 3 classes. Extract to a
+            // service, something like SchemaService or DbService
             try {
                 $columnType = DB::getSchemaBuilder()
                     ->getColumnType($model->getTable(), $field);
             } catch (SchemaException $e) {
                 throw new \Exception($e->getMessage() . ' Did you run the migrations?');
+            } catch (DBALException $e) {
+                // Some column types like "enum" through a DBALException.
+                // This is because "enum" is a custom type and is not supported
+                // by all the DBs. We're going to default to the string type in
+                // these cases.
+                $columnType = 'string';
             } catch (\Exception $e) {
                 throw $e;
             }
@@ -320,7 +329,7 @@ class ControllerMakeCommand extends GeneratorCommand
 
             $idField = $attrs['relation']->getRelated()->getRouteKeyName();
             $multipleChoice = ($type === 'multiselect') ? 'true' : 'false';
-            
+
             // The multiselect is just a select with $multipleChoice === true
             if ($type === 'multiselect') {
                 $type = 'select';
@@ -337,7 +346,7 @@ class ControllerMakeCommand extends GeneratorCommand
             $values .= "                    ],\n";
             $values .= "                ],\n";
         }
-        
+
         $values .= "            ],\n";
         $values .= "        ]";
 
@@ -375,7 +384,7 @@ class ControllerMakeCommand extends GeneratorCommand
 
             $values .= "                '{$name}' => \\{$relatedModel}::all(),\n";
         }
-        
+
         $values .= '            ]';
 
         return $values;
